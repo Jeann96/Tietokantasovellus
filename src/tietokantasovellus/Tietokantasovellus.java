@@ -17,7 +17,7 @@ public class Tietokantasovellus {
     public static Connection getConnection() {
         Connection conn = null;
         try {
-            conn = DriverManager.getConnection("jdbc:sqlite:testi.db");
+            conn = DriverManager.getConnection("jdbc:sqlite:tietokanta.db");
         } catch (SQLException e) {
             System.out.println("Virhe yhteyttä muodostaessa");
         }

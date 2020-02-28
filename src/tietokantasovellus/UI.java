@@ -45,6 +45,10 @@ public class UI {
             //Luetaan syöte
             String input = scanner.nextLine();
             //Komennon validointi
+            if (input.equals("empty")) {
+                this.emptyDatabase();
+                continue;
+            }
             int command;
             try {
                 command = Integer.parseInt(input);
@@ -201,6 +205,8 @@ public class UI {
 
     //Komento 9
     public void speedTest() {
+        this.emptyDatabase();
+        this.createDatabase();
         long alku;
         long loppu;
         try {
@@ -247,9 +253,9 @@ public class UI {
                 p.setString(5, klo.format(Calendar.getInstance().getTime()));
                 p.executeUpdate();
             }
-            s.execute("COMMIT");
-            loppu = System.nanoTime();
+            loppu = System.nanoTime();          
             System.out.println("Tapahtumien lisäämiseen aikaa kului " + (loppu - alku) / 1E6 + " ms");
+            s.execute("COMMIT");
             //Suoritetaan 1000 kyselyä, joissa haetaan jonkin asiakkaan pakettien lukumäärä
             alku = System.nanoTime();
             p = conn.prepareStatement("SELECT COUNT(id) FROM Paketit WHERE asiakas_id = ?");
@@ -330,7 +336,8 @@ public class UI {
             p.setInt(1, r.getInt("paikka_id"));
             String paikka = p.executeQuery().getString("paikka");
             while (r.next()) {
-                System.out.println(paikka + ", " + r.getString("kuvaus") + " " + r.getString("pvm") + " " + "klo. " + r.getString("klo"));
+                System.out.println
+                (paikka + ", " + r.getString("kuvaus") + " " + r.getString("pvm") + " " + "klo. " + r.getString("klo"));
             }
         } catch (SQLException e) {
             System.out.println("Virhe tapahtumien hakemisessa");
@@ -403,23 +410,41 @@ public class UI {
     public void createDatabase() {
         try {
             //Luodaan tarvittavat taulut
-            s.execute("CREATE TABLE IF NOT EXISTS Paikat (id INTEGER PRIMARY KEY, paikka TEXT UNIQUE )");
-            s.execute("CREATE TABLE IF NOT EXISTS Asiakkaat (id INTEGER PRIMARY KEY, nimi TEXT UNIQUE)");
-            s.execute("CREATE TABLE IF NOT EXISTS Paketit (id INTEGER PRIMARY KEY, asiakas_id INTEGER REFERENCES Asiakkaat, koodi TEXT UNIQUE)");
-            s.execute("CREATE TABLE IF NOT EXISTS Tapahtumat(id INTEGER PRIMARY KEY, paketti_id INTEGER REFERENCES Paketit, paikka_id INTEGER REFERENCES Paikat, kuvaus TEXT, pvm TEXT, klo TEXT)");
+            s.execute("CREATE TABLE IF NOT EXISTS Paikat "
+                    + "(id INTEGER PRIMARY KEY, paikka TEXT UNIQUE )");
+            s.execute("CREATE TABLE IF NOT EXISTS Asiakkaat "
+                    + "(id INTEGER PRIMARY KEY, nimi TEXT UNIQUE)");
+            s.execute("CREATE TABLE IF NOT EXISTS Paketit "
+                    + "(id INTEGER PRIMARY KEY, asiakas_id INTEGER REFERENCES Asiakkaat, koodi TEXT UNIQUE)");
+            s.execute("CREATE TABLE IF NOT EXISTS Tapahtumat"
+                    + "(id INTEGER PRIMARY KEY, paketti_id INTEGER REFERENCES Paketit, "
+                    + "paikka_id INTEGER REFERENCES Paikat, kuvaus TEXT, pvm TEXT, klo TEXT)");
             this.databaseCreated = true;
             //Halutessa luodaan indeksit tietokantaan
             s.execute("CREATE INDEX idx_as_id ON Paketit (asiakas_id)");
             s.execute("CREATE INDEX idx_pak_id ON Tapahtumat (paketti_id)");
+            System.out.println("Tietokanta luotu");
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return;
+            System.out.println("Tietokanta on jo olemassa");
         }
-        System.out.println("Tietokanta luotu");
     }
     
     //Tarkastaa, ettei syöte ole tyhjä
     public boolean notValid(String input) {
         return input.equals("");
+    }
+    
+    //Tyhjää tietokannan
+    public void emptyDatabase() {
+        try {
+            s.execute("DROP TABLE Tapahtumat");
+            s.execute("DROP TABLE Paketit");
+            s.execute("DROP TABLE Asiakkaat");
+            s.execute("DROP TABLE Paikat");
+            this.databaseCreated = false;
+            System.out.println("Tietokanta tyhjätty");
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }    
     }
 }
